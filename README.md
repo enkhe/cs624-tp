@@ -147,6 +147,46 @@ ollama run gemma2:2b
 - **Chat not streaming**: Ensure backend `/api/chat` supports `text/event-stream` and frontend is up to date.
 - **Image issues**: Broken images will show a placeholder; check backend image serving if needed.
 - **AI not responding**: Ensure Ollama and Gemma2:2b are running as described above.
+- **If the app is not working (frontend or backend):**
+  1. Delete `node_modules` and `package-lock.json`:
+     ```sh
+     rm -rf node_modules package-lock.json
+     ```
+  2. Reinstall dependencies:
+     ```sh
+     npm install
+     ```
+  3. Start the app:
+     ```sh
+     # For backend
+     ./start.sh
+     # For frontend
+     npm run start
+     # or
+     expo start
+     ```
+
+---
+
+## Screenshots
+
+Below are screenshots of the app in action. Images are shown 2–3 per row for flexible viewing. On mobile, scroll horizontally if needed.
+
+| Home Screen | Product List | Product Details/Edit |
+|-------------|--------------|---------------------|
+| ![Home](documents/screenshots/Screenshot%202025-06-06%2001.png) | ![Product List](documents/screenshots/Screenshot%202025-06-06%2002.png) | ![Product Details](documents/screenshots/Screenshot%202025-06-06%2003.png) |
+
+| Image Gallery | Update Product | Chat Response 1 |
+|---------------|---------------|-----------------|
+| ![Gallery](documents/screenshots/Screenshot%202025-06-06%2004.png) | ![Update Product](documents/screenshots/Screenshot%202025-06-06%2005%20-%20Update%20Product.png) | ![Chat 1](documents/screenshots/Screenshot%202025-06-06%2006%20-%20Chat%20response.png) |
+
+| Chat Response 2 | Chat Response 3 | Shopping Cart |
+|-----------------|-----------------|---------------|
+| ![Chat 2](documents/screenshots/Screenshot%202025-06-06%2007%20-%20Chat%20response.png) | ![Chat 3](documents/screenshots/Screenshot%202025-06-06%2008%20-%20Chat%20response.png) | ![Cart](documents/screenshots/Screenshot%202025-06-06%2009%20Shopping%20Cart.png) |
+
+| Payment | Payment Confirmation | Payment Successful |
+|---------|---------------------|--------------------|
+| ![Payment](documents/screenshots/Screenshot%202025-06-06%2010%20Payment.png) | ![Payment Confirmation](documents/screenshots/Screenshot%202025-06-06%2011%20Payment%20Confirmation.png) | ![Payment Success](documents/screenshots/Screenshot%202025-06-06%2012%20Payment%20Successful.png) |
 
 ---
 
