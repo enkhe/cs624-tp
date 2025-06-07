@@ -1,0 +1,16 @@
+classDiagram
+    class Post {
+        +String _id
+        +String title
+        +String content
+        +String[] images
+        +String contact
+        +Date createdAt
+        +Date updatedAt
+        +String authorId
+        +String[] tags
+        +Number price
+        +Number quantity
+        +Boolean isActive
+    }
+    note for Post "Text index on [title, content] for search.\nImages are URLs.\nAuthorId references User.\nPrice/quantity for e-commerce.\nTimestamps auto-managed."
