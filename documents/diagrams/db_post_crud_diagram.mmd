@@ -1,0 +1,55 @@
+sequenceDiagram
+    participant User
+    participant App as Frontend App
+    participant postController as Post Controller
+    participant DB as MongoDB
+    participant aiService as AI Service
+
+    %% === GET /api/posts ===
+    User->>App: Browse Posts
+    App->>postController: GET /api/posts?search
+    alt search provided
+        postController->>DB: Post.find({ $text: {$search: search} })
+    else no search
+        postController->>DB: Post.find()
+    end
+    postController-->>App: JSON list of posts or error
+    App-->>User: Show posts or error
+
+    %% === GET /api/posts/:id ===
+    User->>App: View Post Details
+    App->>postController: GET /api/posts/:id
+    postController->>DB: Post.findById(id)
+    postController-->>App: Single post or 404 error
+    App-->>User: Show post or error
+
+    %% === POST /api/posts ===
+    User->>App: Create Post (title, content, images, contact)
+    App->>postController: POST /api/posts
+    postController->>postController: Validate fields
+    alt valid
+        postController->>DB: new Post(...).save()
+        postController-->>App: Created post
+    else invalid
+        postController-->>App: Validation error
+    end
+    App-->>User: Show result
+
+    %% === POST /api/posts/createAI ===
+    User->>App: Generate Post with AI
+    App->>postController: POST /api/posts/createAI (input)
+    postController->>aiService: getAIResponse(input)
+    aiService-->>postController: AI-generated data
+    postController-->>App: AI response or error
+    App-->>User: Show AI result
+
+    %% === DELETE /api/posts/:id ===
+    User->>App: Delete Post
+    App->>postController: DELETE /api/posts/:id
+    postController->>DB: Post.findByIdAndDelete(id)
+    alt Post found
+        postController-->>App: Success message
+    else Post not found
+        postController-->>App: 404 error
+    end
+    App-->>User: Show result

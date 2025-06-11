@@ -1,0 +1,66 @@
+flowchart LR
+    %% === Styles with much larger text for all elements ===
+    classDef process fill:#A1D9F7,stroke:#333,stroke-width:3px,font-size:20px;
+    classDef rounded fill:#D4EDDA,stroke:#28A745,stroke-width:3px,font-size:20px;
+    classDef hex fill:#FFC107,stroke:#FF851B,stroke-width:3px,font-size:20px;
+    classDef cyl fill:#BFD5EA,stroke:#17A2B8,stroke-width:3px,font-size:20px;
+    classDef st-rect fill:#F9EBEA,stroke:#E74C3C,stroke-width:3px,font-size:20px;
+    %% Flow labels with larger font
+    linkStyle default font-size:24px;
+    
+    %% === Subgraph: Mobile Client (React Native) ===
+    subgraph CLIENT["<span style='font-size:24px;'>Mobile App (React Native)</span>"]
+        direction TB
+        A1[App.js & Navigation]:::rounded --> A2
+        A2((Tabs: Home, Products, Chat, Cart, UserMenu)):::process
+        A3[[Product Page]]:::st-rect
+        A4[[Product Details]]:::st-rect
+        A5[[Cart Page]]:::st-rect
+        A6[[Payment Page]]:::st-rect
+        A7[[Chat (Gemma AI)]]:::st-rect
+        A8[[Image Gallery]]:::st-rect
+        A2 --> A3
+        A2 --> A4
+        A2 --> A5
+        A2 --> A6
+        A2 --> A7
+        A2 --> A8
+    end
+    
+    %% === Subgraph: Backend Server ===
+    subgraph SERVER["<span style='font-size:24px;'>Backend (Node.js/Express)</span>"]
+        direction TB
+        B1[Express Server]:::process --> B2
+        B2((API Routes)):::hex --> B3
+        B3{{Controllers}}:::rounded
+        B3 --> B4[Product Controller]:::st-rect
+        B3 --> B5[Chat Controller]:::st-rect
+        B3 --> B6[Auth Controller]:::st-rect
+        B3 --> B7[Cart/Order Controller]:::st-rect
+        B3 --> B8[Image Controller]:::st-rect
+    end
+    
+    %% === Subgraph: Database ===
+    subgraph DB["<span style='font-size:24px;'>Database</span>"]
+        C1[(MongoDB)]:::cyl
+    end
+    
+    %% === Subgraph: AI Module ===
+    subgraph AI["<span style='font-size:24px;'>AI Module</span>"]
+        D1[Ollama]:::cyl --> D2
+        D2[Gemma2:2b LLM]:::st-rect
+    end
+    
+    %% === Subgraph: Azure Blob Storage ===
+    subgraph AZURE["<span style='font-size:24px;'>Azure Blob Storage</span>"]
+        E1[(Image Storage)]:::cyl
+    end
+    
+    %% === Flows ===
+    CLIENT --o|"REST API (Products, Cart, Auth, Chat, etc.)"| SERVER
+    SERVER ---|"DB Queries"| DB
+    SERVER ---|"AI Chat Request"| AI
+    AI ---|"Streaming Response"| SERVER
+    CLIENT ---|"Image Requests"| AZURE
+    SERVER ---|"Image Upload/Serve"| AZURE
+

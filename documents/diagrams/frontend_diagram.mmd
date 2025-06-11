@@ -1,0 +1,52 @@
+flowchart TD
+    %% Styling to match backend diagram
+    classDef entry fill:#61dafb,stroke:#282c34,stroke-width:1px
+    classDef page fill:#e6f7ff,stroke:#1890ff,stroke-width:1px
+    classDef ui fill:#f6ffed,stroke:#52c41a,stroke-width:1px
+    classDef context fill:#fff7e6,stroke:#fa8c16,stroke-width:1px
+    classDef service fill:#f9f0ff,stroke:#722ed1,stroke-width:1px
+    classDef backend fill:#68a063,stroke:#2e5e1f,stroke-width:1px
+    classDef storage fill:#0078d4,stroke:#004578,stroke-width:1px
+
+    %% Entry Point & Main Structure
+    A[React App]:::entry -->|"Bootstraps"| B[App.js]:::entry
+    
+    %% Main Page Components
+    B --> C[Pages]:::page
+    
+    %% Pages breakdown
+    C --> C1[Homepage]:::page
+    C --> C2[Post Detail]:::page
+    C --> C3[Create Post]:::page
+    C --> C4[Create Post AI]:::page
+    
+    %% UI Components - simplified
+    C1 --> D1[UI Components]:::ui
+    D1 --> D2[Search Field]:::ui
+    D1 --> D3[Post Card]:::ui
+    
+    %% Context for State Management
+    E[Post Context]:::context -->|"State"| C
+    
+    %% Services
+    F[Frontend Services]:::service
+    F --> F1[Post Service]:::service
+    F --> F2[AI Service]:::service
+    F --> F3[Image Service]:::service
+    
+    %% Service Connections
+    C1 -->|"Fetch Posts"| F1
+    C2 -->|"Fetch Details"| F1
+    C3 -->|"Create Posts"| F1
+    C3 -->|"Upload Images"| F3
+    C4 -->|"Generate Content"| F2
+    
+    %% Backend connections
+    F1 -.->|"API Calls"| G1[Express API]:::backend
+    F2 -.->|"AI Prompts"| G2[Ollama/Gemma2:2b]:::backend
+    F3 -.->|"Image Upload"| G3[Azure Storage]:::storage
+    
+    %% Return Data
+    G1 -->|"Post Data"| F1
+    G2 -->|"AI Content"| F2
+    G3 -->|"Image URLs"| F3

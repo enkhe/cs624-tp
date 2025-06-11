@@ -1,0 +1,50 @@
+flowchart TD
+    %% Styling to match backend diagram
+    classDef entry fill:#61dafb,stroke:#282c34,stroke-width:1px
+    classDef page fill:#e6f7ff,stroke:#1890ff,stroke-width:1px
+    classDef ui fill:#f6ffed,stroke:#52c41a,stroke-width:1px
+    classDef context fill:#fff7e6,stroke:#fa8c16,stroke-width:1px
+    classDef service fill:#f9f0ff,stroke:#722ed1,stroke-width:1px
+    classDef backend fill:#68a063,stroke:#2e5e1f,stroke-width:1px
+    classDef storage fill:#0078d4,stroke:#004578,stroke-width:1px
+
+    %% Entry Point & Main Structure
+    A[App.js]:::entry -->|"Bootstraps"| B[HeaderBar: Home, Products, Chat, Cart, UserMenu]:::entry
+
+    %% Main Page Components
+    B --> C[Tabs/Pages]:::page
+
+    %% Pages breakdown
+    C --> C1[Home.js]:::page
+    C --> C2[Product.js]:::page
+    C --> C3[ProductDetails.js]:::page
+    C --> C4[CartPage.js]:::page
+    C --> C5[PaymentPage.js]:::page
+    C --> C6[Chat.js]:::page
+    C --> C7[UserMenu.js]:::page
+
+    %% UI Components
+    C2 --> D1[CartIcon.js]:::ui
+    C2 --> D2[ImageGallery.js]:::ui
+    C3 --> D3[StarRating.js]:::ui
+    C4 --> D4[CartIcon.js]:::ui
+    C4 --> D5[PaymentPage.js]:::ui
+    C6 --> D6[Shopbot.js]:::ui
+
+    %% Context/State Management
+    E[Cart State]:::context -->|"State"| C4
+    E2[User State]:::context -->|"State"| C7
+
+    %% Services/Utils
+    F[api.js]:::service
+    F2[constants/index.js]:::service
+    C2 -->|"API Calls"| F
+    C3 -->|"API Calls"| F
+    C4 -->|"API Calls"| F
+    C6 -->|"API Calls"| F
+    F --> F2
+
+    %% Backend connections
+    F -.->|"REST API"| G1[Express API]:::backend
+    D2 -.->|"Image Storage"| G2[Azure Storage]:::storage
+    D6 -.->|"AI Chat"| G3[Ollama/Gemma2:2b]:::backend
