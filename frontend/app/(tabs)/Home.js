@@ -7,10 +7,13 @@ import {
   Image,
 } from 'react-native';
 
-const Home = (props) => {
-  return (
+const Home = (props) => {  return (
     <View style={styles.container}>
-      <Text style={styles.welcomeText}>Welcome to</Text>
+      {props.currentUser && props.currentUser.username ? (
+        <Text style={styles.welcomeText}>Welcome back, {props.currentUser.username}!</Text>
+      ) : (
+        <Text style={styles.welcomeText}>Welcome to</Text>
+      )}
       <Text style={styles.brandText}>{props.name || 'Shop'} Electronics</Text>
       <Image
         source={require('./landing_screen.png')}

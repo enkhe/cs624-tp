@@ -4,8 +4,10 @@ import {
   TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator,
   Dimensions, FlatList, Alert, RefreshControl
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 // Assuming './api' contains ProductAPIService, ProductDataManager, CONFIG
 import { ProductAPIService, ProductDataManager, CONFIG } from './api';
+import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
 
 const SCREEN_CONFIG = {
   SCREEN_WIDTH: Dimensions.get('window').width,
@@ -72,7 +74,7 @@ const ProductCard = React.memo(({ product, onProductSelect, onAddToCart }) => {
         </Text>
       </TouchableOpacity>
 
-      {/* Add to Cart Button */}
+      {/* Add to Cart Button - now always visible if in stock, isAdmin check removed */}
       <TouchableOpacity
         style={[styles.cartButton, !inStock && styles.disabledCartButton]}
         disabled={!inStock} // Disable button if out of stock
@@ -87,7 +89,7 @@ const ProductCard = React.memo(({ product, onProductSelect, onAddToCart }) => {
 });
 
 // Main Product Component
-const Product = ({ onProductSelect, onAddToCart }) => {
+const Product = ({ onProductSelect, onAddToCart, currentUser, onNavigateToCreateProduct }) => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,6 +128,13 @@ const Product = ({ onProductSelect, onAddToCart }) => {
     setLoading(false);
     setRefreshing(false);
   }, [products.length, refreshing]); // Dependencies for useCallback
+
+  // Fetch products when the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadProducts();
+    }, [loadProducts])
+  );
 
   // Handle refresh
   const handleRefresh = useCallback(() => {
@@ -194,8 +203,9 @@ const Product = ({ onProductSelect, onAddToCart }) => {
       product={item}
       onProductSelect={handleProductSelect}
       onAddToCart={onAddToCart} // Pass onAddToCart to ProductCard
+      // isAdmin prop removed
     />
-  ), [handleProductSelect, onAddToCart]); // Dependencies for useCallback
+  ), [handleProductSelect, onAddToCart]); // isAdmin removed from dependencies
 
   // Render component for empty list state
   const renderEmpty = useCallback(() => (
@@ -254,6 +264,14 @@ const Product = ({ onProductSelect, onAddToCart }) => {
           <Text style={styles.icon}>🛒</Text>
         </TouchableOpacity> */}
       </View>
+
+      {/* "Add Product" button - visible to all authenticated users */}
+      {currentUser && (
+        <TouchableOpacity style={styles.addButton} onPress={onNavigateToCreateProduct}>
+          <Ionicons name="add-circle-outline" size={28} color="#fff" />
+          <Text style={styles.addButtonText}>Add Product</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Product List using FlatList for performance */}
       <FlatList
@@ -452,6 +470,22 @@ const styles = StyleSheet.create({
     color: '#000000', // Black text for cart button
     fontSize: 14,
     fontWeight: '600',
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3b82f6', // Blue background for add button
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginBottom: 16,
+    alignSelf: 'flex-start', // Align to the start of the row
+  },
+  addButtonText: {
+    marginLeft: 8,
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

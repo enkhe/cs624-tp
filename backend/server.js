@@ -71,7 +71,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/chat', chatRoutes);
 
 // Use the upload images routes
-app.use('/api', uploadImagesRoutes);
+app.use('/api/uploadimages', uploadImagesRoutes);
 
 // Check Azure Blob Storage connection
 const checkAzureBlobStorageConnection = async () => {
@@ -98,7 +98,7 @@ const ROUTE_DESCRIPTIONS = {
   '/api/recommendations': 'Product recommendations',
   '/api/posts': 'Blog posts (CRUD)',
   '/api/routes': 'API documentation (list all routes)',
-  '/api/upload': 'Upload images',
+  '/api/uploadimages': 'Upload images',
   '/': 'API health/status',
 };
 

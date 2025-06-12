@@ -12,6 +12,7 @@ import {
   ActivityIndicator, // For loading state in modal
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import { API_BASE } from '../../constants'; // Assuming API_BASE is here
 
 // Import all your components
 import Login from './Login';
@@ -19,6 +20,9 @@ import Category from './Category';
 import Shopbot from './Shopbot';
 import Product from './Product';
 import ProductDetails from './ProductDetails';
+import Posts from './Posts'; // Import Posts component
+import PostDetails from './PostDetails'; // Import PostDetails component
+import PostCreateForm from './PostCreateForm'; // Import PostCreateForm component
 import User from './User';
 import Home from './Home';
 import Chat from './Chat';
@@ -26,16 +30,22 @@ import CartIcon from './CartIcon';
 import UserMenu from './UserMenu';
 import CartPage from './CartPage';
 import PaymentPage from './PaymentPage';
+import ProductCreateForm from './ProductCreateFormNew'; // Import the improved form
+import Register from './Register'; // Import the Register component
 
 const { width } = Dimensions.get('window');
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('Home');
+  const [activeTab, setActiveTab] = useState('Home'); // Can be 'Home', 'Products', 'Posts', 'Cart', 'Chat', 'Login', 'ProductDetails', 'PostDetails', 'CreateProduct', 'CreatePost', 'Register'
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedPost, setSelectedPost] = useState(null); // Add selected post state
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Consider managing auth state with Firebase or similar
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null); // To store user details
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true); // To handle initial auth check
+
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalTitle, setModalTitle] = useState('');
@@ -60,20 +70,30 @@ export default function App() {
     setModalCallback(null);
   }, []);
 
-  // Load cart from AsyncStorage on mount
+  // Load cart and auth state from AsyncStorage on mount
   useEffect(() => {
-    const loadCartFromStorage = async () => {
+    const loadAppStatus = async () => {
       try {
         const savedCart = await AsyncStorage.getItem('cart');
         if (savedCart) {
           setCart(JSON.parse(savedCart));
         }
+        const userToken = await AsyncStorage.getItem('userToken');
+        const userDataJson = await AsyncStorage.getItem('userData');
+        if (userToken && userDataJson) {
+          const userData = JSON.parse(userDataJson);
+          // TODO: Optionally validate token with backend here
+          setIsAuthenticated(true);
+          setCurrentUser(userData);
+        }
       } catch (error) {
-        console.error('Failed to load cart from storage', error);
-        showAlert('Error', 'Failed to load your cart. Please try again.', 'alert');
+        console.error('Failed to load app status from storage', error);
+        showAlert('Error', 'Failed to load your session. Please try again.', 'alert');
+      } finally {
+        setIsLoadingAuth(false);
       }
     };
-    loadCartFromStorage();
+    loadAppStatus();
   }, [showAlert]);
 
   // Save cart to AsyncStorage whenever it changes
@@ -161,18 +181,69 @@ export default function App() {
     setActiveTab('Product');
   }, []);
 
+  const handleNavigateToCreateProduct = useCallback(() => {
+    setActiveTab('CreateProduct');
+  }, []);
+
+  // Handle post navigation
+  const handleNavigateToCreatePost = useCallback(() => {
+    setActiveTab('CreatePost');
+  }, []);
+
+  // Handle post selection (navigate to post details)
+  const handlePostSelect = useCallback((post) => {
+    setSelectedPost(post);
+    setActiveTab('PostDetails');
+  }, []);
+
   // Handle user menu actions
   const handleProfile = useCallback(() => {
     showAlert('Profile', 'Profile page features coming soon!', 'alert');
   }, [showAlert]);
 
   const handleLogout = useCallback(() => {
-    showAlert('Logout', 'Are you sure you want to log out?', 'confirm', () => {
+    showAlert('Logout', 'Are you sure you want to log out?', 'confirm', async () => {
+      try {
+        await AsyncStorage.removeItem('userToken');
+        await AsyncStorage.removeItem('userData');
+        // Also clear cart from AsyncStorage on logout
+        await AsyncStorage.removeItem('cart');
+      } catch (error) {
+        console.error('Failed to remove auth data from storage', error);
+        // Still proceed with logout in UI
+      }
       setIsAuthenticated(false);
-      handleClearCart(); // This will show another alert, consider combining or changing flow
+      setCurrentUser(null);
+      setCart([]); // Clear cart in state
+      setActiveTab('Home'); // Go to home after logout
       showAlert('Logged Out', 'You have been logged out successfully!', 'alert');
     });
-  }, [handleClearCart, showAlert]);
+  }, [showAlert]);
+
+  // Handle login success
+  const handleLoginSuccess = useCallback(async (userData, token) => {
+    try {
+      await AsyncStorage.setItem('userToken', token);
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      setIsAuthenticated(true);
+      setCurrentUser(userData);
+      setActiveTab('Home'); // Navigate to Home after login
+      showAlert('Login Successful', `Welcome back, ${userData.username || 'User'}!`);
+    } catch (error) {
+      console.error('Failed to save auth data to storage', error);
+      showAlert('Error', 'Failed to save your session.', 'alert');
+    }
+  }, [showAlert]);
+
+  // Navigation handler for registration
+  const handleNavigateToRegister = () => {
+    setActiveTab('Register');
+  };
+
+  const handleRegistrationSuccess = () => {
+    Alert.alert("Registration Successful", "You can now log in with your new account.");
+    setActiveTab('Login'); // Navigate to login screen after successful registration
+  };
 
   // Calculate cart total
   const getCartTotal = useCallback(() => {
@@ -186,6 +257,21 @@ export default function App() {
 
   // Render main content based on active state
   const renderContent = () => {
+    if (isLoadingAuth) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text>Loading session...</Text>
+        </View>
+      );
+    }
+
+    if (!isAuthenticated && activeTab !== 'Register') {
+      // If not authenticated and not on register screen, show Login
+      // Pass handleLoginSuccess and handleNavigateToRegister to Login
+      return <Login onLoginSuccess={handleLoginSuccess} onNavigateToRegister={handleNavigateToRegister} />;
+    }
+
     if (showCart) {
       return (
         <CartPage
@@ -219,18 +305,36 @@ export default function App() {
       );
     }
 
+    if (activeTab === 'PostDetails' && selectedPost) {
+      return (
+        <PostDetails
+          route={{
+            params: {
+              post: selectedPost,
+              currentUser: currentUser,
+              onPostUpdate: (updatedPost) => {
+                console.log('Post updated from details:', updatedPost);
+              },
+            }
+          }}
+          navigation={{ goBack: () => setActiveTab('Posts') }}
+        />
+      );
+    }
+
     if (activeTab === 'ProductDetails' && selectedProduct) {
       return (
         <ProductDetails
           route={{
             params: {
               product: selectedProduct,
+              currentUser: currentUser, // Add currentUser here
               onProductUpdate: (updatedProduct) => {
                 // This callback should ideally update the specific product in the main products list
                 // For now, it's a placeholder if ProductDetails modifies product properties.
                 console.log('Product updated from details:', updatedProduct);
+                // Potentially refresh product list or update the selectedProduct in App.js state
               },
-              onAddToCart: handleAddToCart
             }
           }}
           navigation={{ goBack: handleBackToProducts }}
@@ -244,9 +348,9 @@ export default function App() {
           <Home
             onGetStarted={() => setActiveTab('Product')}
             onChat={() => setActiveTab('Chat')}
+            currentUser={currentUser}
           />
-        );
-      case 'Product':
+        );      case 'Product':
         return (
           <Product
             onProductSelect={(product) => {
@@ -254,16 +358,62 @@ export default function App() {
               setActiveTab('ProductDetails');
             }}
             onAddToCart={handleAddToCart}
+            currentUser={currentUser} // Pass currentUser
+            onNavigateToCreateProduct={handleNavigateToCreateProduct} // Pass navigation handler
+          />
+        );
+      case 'Posts':
+        return (
+          <Posts
+            onPostSelect={handlePostSelect}
+            currentUser={currentUser}
+            onNavigateToCreatePost={handleNavigateToCreatePost}
           />
         );
       case 'Chat':
         return <Chat />;
-      // Removed 'Category', 'Login', 'Shopbot', 'User' as they are not explicitly rendered in the switch
-      default:
+      case 'Login': // Added case for Login
+        return <Login onLoginSuccess={handleLoginSuccess} onNavigateToRegister={() => setActiveTab('Register')} />;
+      case 'Register':
+        return <Register onNavigateToLogin={() => setActiveTab('Login')} onRegistrationSuccess={handleRegistrationSuccess} />;      case 'CreateProduct': // Added case for CreateProduct
+        return (
+          <ProductCreateForm
+            currentUser={currentUser}
+            onProductCreated={(createdProduct) => {
+              console.log('🎯 === NAVIGATION DEBUG ===');
+              console.log('📦 Product created successfully:', createdProduct);
+              console.log('🔄 Setting selected product and navigating to details...');
+              setSelectedProduct(createdProduct); // Set the created product as selected
+              setActiveTab('ProductDetails'); // Navigate to product details page
+              console.log('✅ Navigation completed');
+            }}
+            onCancel={() => setActiveTab('Product')}
+          />
+        );
+      case 'CreatePost': // Added case for CreatePost
+        return (
+          <PostCreateForm
+            currentUser={currentUser}
+            onPostCreated={() => {
+              setActiveTab('Posts'); // Navigate back to post list after creation
+            }}
+            onCancel={() => setActiveTab('Posts')}
+          />
+        );
+      /* default:
         return (
           <Home
             onGetStarted={() => setActiveTab('Product')}
             onChat={() => setActiveTab('Chat')}
+            currentUser={currentUser} // Pass currentUser here too for safety
+          />
+        ); */ // Default case might need review based on overall flow
+      default: // Fallback to Home if activeTab is unrecognized
+        return (
+          <Home
+            onGetStarted={() => setActiveTab('Product')}
+            onChat={() => setActiveTab('Chat')}
+            currentUser={currentUser}
           />
         );
     }
@@ -276,7 +426,9 @@ export default function App() {
         <UserMenu
           onProfile={handleProfile}
           onLogout={handleLogout}
+          onLogin={() => setActiveTab('Login')} // Add this to navigate to Login
           isAuthenticated={isAuthenticated} // Pass authentication status
+          currentUser={currentUser} // Pass current user for display
         />
 
         {/* Navigation Links */}
@@ -292,9 +444,7 @@ export default function App() {
             <Text style={[styles.headerLinkText, activeTab === 'Home' && styles.activeLinkText]}>
               Home
             </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
+          </TouchableOpacity>          <TouchableOpacity
             onPress={() => {
               setActiveTab('Product');
               setShowCart(false);
@@ -304,6 +454,19 @@ export default function App() {
           >
             <Text style={[styles.headerLinkText, activeTab === 'Product' && styles.activeLinkText]}>
               Products
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
+              setActiveTab('Posts');
+              setShowCart(false);
+              setShowPayment(false);
+            }}
+            style={[styles.headerLink, activeTab === 'Posts' && styles.activeLink]}
+          >
+            <Text style={[styles.headerLinkText, activeTab === 'Posts' && styles.activeLinkText]}>
+              Posts
             </Text>
           </TouchableOpacity>
 

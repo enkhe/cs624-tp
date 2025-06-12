@@ -3,12 +3,13 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert } fro
 import { Ionicons } from '@expo/vector-icons';
 import styles from './ProductDetails.styles';
 import { ProductDataManager } from './api';
+import ImageUpload from './ImageUpload';
 
 const CONFIG = {
   MAX_IMAGE_URLS: 5, // Reduced for better performance
 };
 
-const ImageURLEditor = React.memo(({ imageUrls, onImageUrlsChange, loading }) => {
+const ImageEditorWithUpload = React.memo(({ imageUrls, onImageUrlsChange, loading }) => {
   const [urlErrors, setUrlErrors] = useState({});
 
   const handleImageUrlChange = useCallback((index, value) => {
@@ -43,9 +44,35 @@ const ImageURLEditor = React.memo(({ imageUrls, onImageUrlsChange, loading }) =>
     }
   }, [imageUrls]);
 
+  // Handle new images from upload component
+  const handleImagesUpload = useCallback((newImageUrls) => {
+    console.log('🖼️ ImageEditorWithUpload: Received new image URLs:', newImageUrls);
+    
+    // If newImageUrls is the complete array, use it directly
+    if (Array.isArray(newImageUrls)) {
+      const limitedUrls = newImageUrls.slice(0, CONFIG.MAX_IMAGE_URLS);
+      console.log('🔄 ImageEditorWithUpload: Setting URLs to:', limitedUrls);
+      onImageUrlsChange(limitedUrls);
+    }
+  }, [onImageUrlsChange]);
+
   return (
     <View style={styles.imageEditorContainer}>
       <Text style={styles.sectionTitle}>Product Images (Max {CONFIG.MAX_IMAGE_URLS})</Text>
+      
+      {/* Image Upload Component */}
+      <ImageUpload
+        imageUrls={imageUrls}
+        onImagesChange={handleImagesUpload}
+        maxImages={CONFIG.MAX_IMAGE_URLS}
+        showUrlInput={true}
+      />
+      
+      {/* Manual URL Entry */}
+      <Text style={[styles.sectionTitle, { fontSize: 16, marginTop: 16, marginBottom: 8 }]}>
+        Or Enter Image URLs Manually
+      </Text>
+      
       {imageUrls.map((url, idx) => (
         <View key={idx}>
           <View style={styles.imageUrlRow}>
@@ -174,7 +201,7 @@ const ProductEditForm = React.memo(({
         />
       </View>
 
-      <ImageURLEditor
+      <ImageEditorWithUpload
         imageUrls={editProduct.imageUrls}
         onImageUrlsChange={onImageUrlsChange}
         loading={loading}

@@ -19,7 +19,8 @@ import { ProductAPIService, ProductDataManager, CONFIG } from './api';
 import styles from './ProductDetails.styles';
 
 const ProductDetails = ({ route, navigation }) => {
-  const { product } = route.params;
+  const { product, currentUser } = route.params; // Destructure currentUser
+  console.log('ProductDetails currentUser:', currentUser); // Added for debugging
   const scrollViewRef = useRef(null);
 
   // State Management
@@ -29,6 +30,7 @@ const ProductDetails = ({ route, navigation }) => {
   const [enhancedProduct, setEnhancedProduct] = useState(null);
   const [editProduct, setEditProduct] = useState(null);
   const [updateInProgress, setUpdateInProgress] = useState(false);
+  const [deleteInProgress, setDeleteInProgress] = useState(false); // Added for delete operation
 
   // Initialize enhanced product data
   useEffect(() => {
@@ -86,10 +88,11 @@ const ProductDetails = ({ route, navigation }) => {
     try {
       await Share.share({
         message: `Check out ${enhancedProduct?.name} - $${displayPrice}`,
-        title: enhancedProduct?.name,
+        // title: enhancedProduct?.name, // title is not available on all platforms
       });
     } catch (error) {
       console.error('Share error:', error);
+      // Alert.alert('Error', 'Could not share product.'); // Optional: user feedback
     }
   }, [enhancedProduct?.name, displayPrice]);
 
@@ -154,6 +157,69 @@ const ProductDetails = ({ route, navigation }) => {
     }
   }, [editProduct, enhancedProduct?.id, product, route.params]);
 
+  // Handler for deleting a product
+  const handleDeleteProduct = useCallback(async () => {
+    console.log('[ProductDetails] handleDeleteProduct called.'); // New log
+    console.log(`[ProductDetails] Current states: deleteInProgress=${deleteInProgress}, updateInProgress=${updateInProgress}`); // New log
+
+    if (deleteInProgress) {
+      console.log('[ProductDetails] deleteInProgress is true, returning early.'); // New log
+      return;
+    }
+
+    // Check if the current user is an admin
+    console.log('[ProductDetails] handleDeleteProduct currentUser:', currentUser); // Existing log
+    if (!currentUser || currentUser.role !== 'admin') {
+      console.log('[ProductDetails] Permission denied for non-admin or missing user.'); // New log
+      Alert.alert(
+        'Permission Denied',
+        'You do not have permission to delete this product.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    console.log('[ProductDetails] Admin role confirmed. Preparing to show confirmation alert.'); // New log
+    Alert.alert(
+      'Confirm Delete',
+      `Are you sure you want to delete "${enhancedProduct?.name}" (ID: ${enhancedProduct?.id || product?.id || product?._id})? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            console.log('[ProductDetails] Confirmed delete. Calling ProductAPIService.deleteProduct...'); // Existing log
+            setDeleteInProgress(true);
+            try {
+              const productIdToDelete = enhancedProduct?.id || product?.id || product?._id;
+              console.log(`[ProductDetails] Product ID to delete: ${productIdToDelete}`); // Added for debugging
+              const result = await ProductAPIService.deleteProduct(productIdToDelete);
+              if (result.success) {
+                Alert.alert('Success', 'Product deleted successfully!', [
+                  { text: 'OK', onPress: () => {
+                    if (route.params?.onProductDelete) {
+                        route.params.onProductDelete(enhancedProduct?.id || product?.id || product?._id);
+                    }
+                    navigation.goBack();
+                  }}
+                ]);
+              } else {
+                Alert.alert('Error', result.error || 'Failed to delete product. Please try again.');
+              }
+            } catch (error) {
+              console.error('Delete product error:', error);
+              Alert.alert('Error', 'An unexpected error occurred while deleting the product.');
+            } finally {
+              setDeleteInProgress(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [enhancedProduct, product, deleteInProgress, updateInProgress, navigation, route.params, currentUser]);
+
+
   // Loading state
   if (!enhancedProduct) {
     return (
@@ -181,7 +247,38 @@ const ProductDetails = ({ route, navigation }) => {
               <Ionicons name="arrow-back" size={24} color="#3B82F6" />
             </TouchableOpacity>
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
+              {/* Show Edit and Delete buttons only for admin users when not in edit mode */}
+              {!editMode && currentUser && currentUser.role === 'admin' && (
+                <>
+                  <TouchableOpacity 
+                    style={[styles.actionButton, { marginRight: 10 }]} 
+                    onPress={handleToggleEditMode}
+                    disabled={updateInProgress || deleteInProgress}
+                  >
+                    <Ionicons name="create-outline" size={24} color="#3B82F6" />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.actionButton} 
+                    onPress={handleDeleteProduct}
+                    disabled={updateInProgress || deleteInProgress}
+                  >
+                    <Ionicons name="trash-outline" size={24} color="#EF4444" />
+                  </TouchableOpacity>
+                </>
+              )}
+              {/* Show Save and Cancel when in edit mode for admin users */}
+              {editMode && currentUser && currentUser.role === 'admin' && (
+                <TouchableOpacity 
+                  style={[styles.actionButton, { marginRight: 10 }]} 
+                  onPress={handleToggleEditMode} // This will act as cancel
+                  disabled={updateInProgress || deleteInProgress}
+                >
+                  <Ionicons name="close-circle-outline" size={24} color="#EF4444" />
+                </TouchableOpacity>
+                // Save button is part of ProductEditForm
+              )}
+              {/* Share button - always visible, adjust margin if needed */}
+              <TouchableOpacity style={[styles.actionButton, { marginLeft: editMode ? 0 : 10 }]} onPress={handleShare}>
                 <Ionicons name="share-outline" size={24} color="#3B82F6" />
               </TouchableOpacity>
             </View>
@@ -278,18 +375,6 @@ const ProductDetails = ({ route, navigation }) => {
                   <Text style={styles.sectionTitle}>Description</Text>
                   <Text style={styles.description}>{enhancedProduct?.description}</Text>
                 </View>
-              )}
-
-              {/* Update Button */}
-              {!editMode && (
-                <TouchableOpacity
-                  style={styles.updateButton}
-                  onPress={handleToggleEditMode}
-                  disabled={updateInProgress}
-                >
-                  <Ionicons name="create-outline" size={20} color="#FFFFFF" />
-                  <Text style={styles.updateButtonText}>Update Product</Text>
-                </TouchableOpacity>
               )}
 
               {/* Edit Form */}
